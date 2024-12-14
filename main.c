@@ -1,5 +1,7 @@
+// https://github.com/DaveGamble/cJSON
 #include <stdio.h>
 #include <math.h>
+#include <cjson/cJSON.h>
 
 #define MAX_SATELLITES 10
 #define MAX_APPS 10
@@ -14,6 +16,11 @@ typedef struct {
     int allocated_apps[MAX_APPS];  // Armazena os IDs das aplicações alocadas
     int allocated_count;  // Número de aplicações alocadas
 } Satellite;
+// strutura mais facil de percorrer
+typedef struct {
+    Satellite **satellites;
+    int numero_satelites;
+} ListaSatelites;
 
 // Estrutura para representar uma aplicação
 typedef struct {
@@ -76,7 +83,15 @@ int backtrack(Satellite satellites[], int num_satellites, Application apps[], in
     return max_allocated;
 }
 
+cJSON *le_json(char *nome_arquivo) {
+
+}
+
+
 int main() {
+    cJSON *json;
+    FILE *arquivo = NULL;
+
     Satellite satellites[MAX_SATELLITES] = {
         {1, 100, 200, {0, 0, 0}, 50, {0}, 0},
         {2, 150, 250, {10, 10, 10}, 60, {0}, 0}
@@ -90,6 +105,8 @@ int main() {
     int num_satellites = 2;
     int num_apps = 2;
 
+    
+    
     int result = backtrack(satellites, num_satellites, apps, num_apps, 0, 0);
     printf("Máximo de aplicações alocadas: %d\n", result);
 
