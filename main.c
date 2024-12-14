@@ -127,10 +127,43 @@ end:
         
 
 
+// Função de alocação gulosa
+void greedy_allocate(Satellite **satellites, int num_satellites, Application *apps, int num_apps, int time) {
+    for (int i = 0; i < num_apps; i++) {
+        Application* app = &apps[i];
+        Satellite* best_satellite = NULL;
+        double max_resources = -1;
+
+        // Procurar o satélite mais adequado para a aplicação
+        for (int j = 0; j < num_satellites; j++) {
+            Satellite* sat = satellites[j];
+
+            // Verificar se o satélite está dentro do alcance e tem recursos suficientes
+            if (is_within_coverage(sat, app, time) && can_allocate(sat, app)) {
+                double available_resources = sat->cpu_capacity + sat->memory_capacity;
+                
+                // Verificar se esse satélite tem mais recursos livres
+                if (available_resources > max_resources) {
+                    max_resources = available_resources;
+                    best_satellite = sat;
+                }
+            }
+        }
+
+        // Se encontramos um satélite adequado, alocar a aplicação nele
+        if (best_satellite != NULL) {
+            allocate(best_satellite, app);
+            printf("Aplicação %d alocada no satélite %d\n", app->id, best_satellite->id);
+        } else {
+            printf("Aplicação %d não foi alocada\n", app->id);
+        }
+    }
+}
+
 int main() {
     cJSON *json;
     FILE *arquivo = NULL;
-    const cJSON * item = NULL;
+    const cJSON *item = NULL;
     ListaSatelites satellites;
 
     Application apps[MAX_APPS] = {
@@ -141,40 +174,41 @@ int main() {
     int num_satellites = 2;
     int num_apps = 2;
 
+    // Lê o arquivo JSON
     json = ler_json("./inputs/log1.json");
     cJSON *itens = cJSON_GetObjectItemCaseSensitive(json, "satellites");
 
     int tam_satelites = cJSON_GetArraySize(itens);
 
     satellites.numero_satelites = 0;
-    satellites.satellites = (Satellite**)malloc(sizeof(Satellite*)*tam_satelites);
+    satellites.satellites = (Satellite**)malloc(sizeof(Satellite*) * tam_satelites);
 
-    if(itens == NULL) {
+    if (itens == NULL) {
         goto end;
     }
-    cJSON_ArrayForEach(item, itens)
-    {
+
+    cJSON_ArrayForEach(item, itens) {
         Satellite *satellite = (Satellite*)malloc(sizeof(Satellite));
         cJSON *cpu = cJSON_GetObjectItemCaseSensitive(item, "cpu");
         cJSON *memory = cJSON_GetObjectItemCaseSensitive(item, "memory");
         cJSON *id = cJSON_GetObjectItemCaseSensitive(item, "id"); 
         cJSON *range = cJSON_GetObjectItemCaseSensitive(item, "range"); 
         cJSON *coordenadas = cJSON_GetObjectItemCaseSensitive(item, "coordinates");
-        
+
         int time_couter = 1;
         cJSON *coor = NULL;
-        satellite->positions = (Coordenada**)malloc(sizeof(Coordenada*)*cJSON_GetArraySize(coordenadas));
+        satellite->positions = (Coordenada**)malloc(sizeof(Coordenada*) * cJSON_GetArraySize(coordenadas));
         cJSON_ArrayForEach(coor, coordenadas) {
-            Coordenada * coordenada = (Coordenada*)malloc(sizeof(Coordenada));
-            cJSON * time = cJSON_GetObjectItemCaseSensitive(coor, "time");
-            cJSON * coordinates = cJSON_GetObjectItemCaseSensitive(coor, "coordinates");
+            Coordenada *coordenada = (Coordenada*)malloc(sizeof(Coordenada));
+            cJSON *time = cJSON_GetObjectItemCaseSensitive(coor, "time");
+            cJSON *coordinates = cJSON_GetObjectItemCaseSensitive(coor, "coordinates");
             cJSON *c = NULL;
             double x = 0.0, y = 0.0;
             int i = 0;
 
             cJSON_ArrayForEach(c, coordinates) {
-                if(i = 0) {
-                    x= c->valuedouble;
+                if (i == 0) {
+                    x = c->valuedouble;
                 } else {
                     y = c->valuedouble;
                 }
@@ -182,24 +216,24 @@ int main() {
 
             coordenada->time = time->valueint;
 
-            satellite->positions[time_couter-1] = coordenada;
+            satellite->positions[time_couter - 1] = coordenada;
         }
 
         satellite->cpu_capacity = cpu->valueint;
         satellite->id = id->valueint;
         satellite->memory_capacity = memory->valueint;
-        satellite->coverage_radius = (range->valuedouble)/2; // pega o raio
+        satellite->coverage_radius = (range->valuedouble) / 2;  // Raio
         satellite->allocated_count = 0;
 
         satellites.satellites[satellites.numero_satelites] = satellite;
         satellites.numero_satelites++;
     }
 
-    double result = backtrack(satellites.satellites, satellites.numero_satelites, apps, num_apps, 0, 0, 1);
-    printf("Máximo de aplicações alocadas: %f\n", result);
+    // Alocação gulosa das aplicações
+    greedy_allocate(satellites.satellites, satellites.numero_satelites, apps, num_apps, 1);
 
     return 0;
-end: 
+end:
     cJSON_Delete(itens);
     cJSON_Delete(json);
     exit(1);
