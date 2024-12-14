@@ -8,8 +8,9 @@
                 "-fdiagnostics-color=always",
                 "-g",
                 "${file}",
+                "cJSON/cJSON.c",
                 "-o",
-                "${fileDirname}/${fileBasenameNoExtension}",
+                "${fileDirname}/out/${fileBasenameNoExtension}",
                 "-lm"
             ],
             "options": {
