@@ -32,6 +32,11 @@ typedef struct {
     double position[3];  // Posição da aplicação
 } Application;
 
+typedef struct {
+    Application **applications;
+    int numero_application;
+} ListaApplication;
+
 // Função para calcular a distância Euclidiana entre o satélite e a aplicação
 double calculate_distance(double sat_position[3], double app_position[3]) {
     return sqrt(pow(sat_position[0] - app_position[0], 2) + 
@@ -113,7 +118,6 @@ end:
     fclose(arquivo);
     cJSON_Delete(json);
     exit(1);
-    return ;
 }
         
 
@@ -121,11 +125,8 @@ end:
 int main() {
     cJSON *json;
     FILE *arquivo = NULL;
-
-    Satellite satellites[MAX_SATELLITES] = {
-        {1, 100, 200, {0, 0, 0}, 50, {0}, 0},
-        {2, 150, 250, {10, 10, 10}, 60, {0}, 0}
-    };
+    const cJSON * item = NULL;
+    ListaSatelites satellites;
 
     Application apps[MAX_APPS] = {
         {1, 50, 100, {5, 5, 5}},
@@ -137,9 +138,41 @@ int main() {
 
     
     json = le_json("./inputs/log1.json");
-    printf("%s", cJSON_Print(json));
-    int result = backtrack(satellites, num_satellites, apps, num_apps, 0, 0);
+    cJSON *itens = cJSON_GetObjectItemCaseSensitive(json, "satellites");
+
+    int tam_satelites = cJSON_GetArraySize(itens);
+
+    satellites.numero_satelites = 0;
+    satellites.satellites = (Satellite**)malloc(sizeof(Satellite*)*tam_satelites);
+
+    if(itens == NULL) {
+        goto end;
+    }
+    cJSON_ArrayForEach(item, itens)
+    {
+        Satellite *satellite = (Satellite*)malloc(sizeof(Satellite));
+        cJSON *cpu = cJSON_GetObjectItemCaseSensitive(item, "cpu");
+        cJSON *memory = cJSON_GetObjectItemCaseSensitive(item, "memory");
+        cJSON *id = cJSON_GetObjectItemCaseSensitive(item, "id"); 
+
+        satellite->cpu_capacity = cpu->valueint;
+        satellite->id = id->valueint;
+        satellite->memory_capacity = memory->valueint;
+
+        satellites.satellites[satellites.numero_satelites] = satellite;
+        satellites.numero_satelites++;
+    }
+
+    for(int i = 0; i < satellites.numero_satelites; ++i) {
+        printf("%d\n", satellites.satellites[i]->id);
+    }
+
+    //int result = backtrack(satellites, num_satellites, apps, num_apps, 0, 0);
     // printf("Máximo de aplicações alocadas: %d\n", result);
 
     return 0;
+end: 
+    cJSON_Delete(itens);
+    cJSON_Delete(json);
+    exit(1);
 }
