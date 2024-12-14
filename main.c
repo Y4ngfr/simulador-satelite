@@ -92,9 +92,19 @@ cJSON *le_json(char *nome_arquivo) {
         printf("\033[41mERRO:\033[0m Não foi possivel ler o arquivo %s", nome_arquivo);
         exit(1);
     }
-    if((fread(conteudo_arquivo, sizeof(char*), 1, arquivo)) != 1) 
+
+    fseek(arquivo, 0, SEEK_END);
+    long tam_arquivo = ftell(arquivo);
+    fseek(arquivo, 0, SEEK_SET);
+
+    conteudo_arquivo = (char*)malloc(sizeof(char) * (tam_arquivo+1));
+    if((fread(conteudo_arquivo, 1, tam_arquivo, arquivo)) != 1) 
         printf("\033[41mERRO:\033[0m Não foi possivel ler o arquivo %s (escrita no conteudo)", nome_arquivo);
+    
+    conteudo_arquivo[tam_arquivo] = '\0';
+    
     fclose(arquivo);
+    
     return cJSON_Parse(conteudo_arquivo);
 }
 
@@ -117,9 +127,9 @@ int main() {
     int num_apps = 2;
 
     
-    
+    le_json("./inputs/log1.json");
     int result = backtrack(satellites, num_satellites, apps, num_apps, 0, 0);
-    printf("Máximo de aplicações alocadas: %d\n", result);
+    // printf("Máximo de aplicações alocadas: %d\n", result);
 
     return 0;
 }
