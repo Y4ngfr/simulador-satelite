@@ -1,6 +1,8 @@
 // https://github.com/DaveGamble/cJSON
 #include <stdio.h>
+#include <stdlib.h>
 #include <math.h>
+#include <string.h>
 #include <cjson/cJSON.h>
 
 #define MAX_SATELLITES 10
@@ -84,7 +86,16 @@ int backtrack(Satellite satellites[], int num_satellites, Application apps[], in
 }
 
 cJSON *le_json(char *nome_arquivo) {
-
+    FILE *arquivo;
+    char *conteudo_arquivo;
+    if((arquivo = fopen(nome_arquivo, "rb")) == NULL) {
+        printf("\033[41mERRO:\033[0m Não foi possivel ler o arquivo %s", nome_arquivo);
+        exit(1);
+    }
+    if((fread(conteudo_arquivo, sizeof(char*), 1, arquivo)) != 1) 
+        printf("\033[41mERRO:\033[0m Não foi possivel ler o arquivo %s (escrita no conteudo)", nome_arquivo);
+    fclose(arquivo);
+    return cJSON_Parse(conteudo_arquivo);
 }
 
 
