@@ -7,8 +7,8 @@
             "args": [
                 "-fdiagnostics-color=always",
                 "-g",
+                "${fileDirname}/cJSON/cJSON.c",
                 "${file}",
-                "cJSON/cJSON.c",
                 "-o",
                 "${fileDirname}/out/${fileBasenameNoExtension}",
                 "-lm"
