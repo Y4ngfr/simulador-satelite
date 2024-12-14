@@ -8,12 +8,18 @@
 #define MAX_SATELLITES 10
 #define MAX_APPS 10
 
+typedef struct {
+    int time;
+    double x;
+    double y;
+} Coordenada;
+
 // Estrutura para representar um satélite
 typedef struct {
     int id;
     int cpu_capacity;
     int memory_capacity;
-    double position[3];  // Posição do satélite (x, y, z)
+    Coordenada **positions;  // O time indica a posição do vetor
     double coverage_radius;
     int allocated_apps[MAX_APPS];  // Armazena os IDs das aplicações alocadas
     int allocated_count;  // Número de aplicações alocadas
@@ -29,7 +35,7 @@ typedef struct {
     int id;
     int cpu_demand;
     int memory_demand;
-    double position[3];  // Posição da aplicação
+    double position[2];  // Posição da aplicação
 } Application;
 
 typedef struct {
@@ -38,15 +44,14 @@ typedef struct {
 } ListaApplication;
 
 // Função para calcular a distância Euclidiana entre o satélite e a aplicação
-double calculate_distance(double sat_position[3], double app_position[3]) {
-    return sqrt(pow(sat_position[0] - app_position[0], 2) + 
-                pow(sat_position[1] - app_position[1], 2) + 
-                pow(sat_position[2] - app_position[2], 2));
+double calculate_distance(Coordenada * sat_position, double app_position[3]) {
+    return sqrt(pow(sat_position->x - app_position[0], 2) + 
+                pow(sat_position->y - app_position[1], 2));
 }
 
 // Função para verificar se a aplicação está dentro da cobertura do satélite
-int is_within_coverage(Satellite* sat, Application* app) {
-    return calculate_distance(sat->position, app->position) <= sat->coverage_radius;
+int is_within_coverage(Satellite* sat, Application* app, int time) {
+    return calculate_distance(sat->positions[time-1], app->position) <= sat->coverage_radius;
 }
 
 // Função para verificar se o satélite tem recursos suficientes para alocar a aplicação
@@ -69,20 +74,20 @@ void deallocate(Satellite* sat, Application* app) {
 }
 
 // Função de backtracking para alocar as aplicações
-int backtrack(Satellite satellites[], int num_satellites, Application apps[], int num_apps, int index, int allocated) {
+double backtrack(Satellite **satellites, int num_satellites, Application apps[], int num_apps, int index, int allocated, int time) {
     if (index == num_apps) {
         return allocated;  // Todas as aplicações foram alocadas
     }
 
     Application* app = &apps[index];
-    int max_allocated = allocated;
+    double max_allocated = allocated;
 
     for (int i = 0; i < num_satellites; i++) {
-        Satellite* sat = &satellites[i];
+        Satellite* sat = satellites[i];
 
-        if (is_within_coverage(sat, app) && can_allocate(sat, app)) {
+        if (is_within_coverage(sat, app, time) && can_allocate(sat, app)) {
             allocate(sat, app);
-            max_allocated = fmax(max_allocated, backtrack(satellites, num_satellites, apps, num_apps, index + 1, allocated + 1));
+            max_allocated = fmax(max_allocated, backtrack(satellites, num_satellites, apps, num_apps, index + 1, allocated + 1, time));
             deallocate(sat, app);
         }
     }
@@ -90,7 +95,7 @@ int backtrack(Satellite satellites[], int num_satellites, Application apps[], in
     return max_allocated;
 }
 
-cJSON *le_json(char *nome_arquivo) {
+cJSON *ler_json(char *nome_arquivo) {
     FILE *arquivo;
     cJSON *json;
     char *conteudo_arquivo;
@@ -129,15 +134,14 @@ int main() {
     ListaSatelites satellites;
 
     Application apps[MAX_APPS] = {
-        {1, 50, 100, {5, 5, 5}},
-        {2, 80, 150, {20, 20, 20}}
+        {1, 30, 30, {37.769655522217555, -122.4211555521247}},
+        {2, 80, 150, {20, 20}}
     };
 
     int num_satellites = 2;
     int num_apps = 2;
 
-    
-    json = le_json("./inputs/log1.json");
+    json = ler_json("./inputs/log1.json");
     cJSON *itens = cJSON_GetObjectItemCaseSensitive(json, "satellites");
 
     int tam_satelites = cJSON_GetArraySize(itens);
@@ -154,21 +158,45 @@ int main() {
         cJSON *cpu = cJSON_GetObjectItemCaseSensitive(item, "cpu");
         cJSON *memory = cJSON_GetObjectItemCaseSensitive(item, "memory");
         cJSON *id = cJSON_GetObjectItemCaseSensitive(item, "id"); 
+        cJSON *range = cJSON_GetObjectItemCaseSensitive(item, "range"); 
+        cJSON *coordenadas = cJSON_GetObjectItemCaseSensitive(item, "coordinates");
+        
+        int time_couter = 1;
+        cJSON *coor = NULL;
+        satellite->positions = (Coordenada**)malloc(sizeof(Coordenada*)*cJSON_GetArraySize(coordenadas));
+        cJSON_ArrayForEach(coor, coordenadas) {
+            Coordenada * coordenada = (Coordenada*)malloc(sizeof(Coordenada));
+            cJSON * time = cJSON_GetObjectItemCaseSensitive(coor, "time");
+            cJSON * coordinates = cJSON_GetObjectItemCaseSensitive(coor, "coordinates");
+            cJSON *c = NULL;
+            double x = 0.0, y = 0.0;
+            int i = 0;
+
+            cJSON_ArrayForEach(c, coordinates) {
+                if(i = 0) {
+                    x= c->valuedouble;
+                } else {
+                    y = c->valuedouble;
+                }
+            }
+
+            coordenada->time = time->valueint;
+
+            satellite->positions[time_couter-1] = coordenada;
+        }
 
         satellite->cpu_capacity = cpu->valueint;
         satellite->id = id->valueint;
         satellite->memory_capacity = memory->valueint;
+        satellite->coverage_radius = (range->valuedouble)/2; // pega o raio
+        satellite->allocated_count = 0;
 
         satellites.satellites[satellites.numero_satelites] = satellite;
         satellites.numero_satelites++;
     }
 
-    for(int i = 0; i < satellites.numero_satelites; ++i) {
-        printf("%d\n", satellites.satellites[i]->id);
-    }
-
-    //int result = backtrack(satellites, num_satellites, apps, num_apps, 0, 0);
-    // printf("Máximo de aplicações alocadas: %d\n", result);
+    double result = backtrack(satellites.satellites, satellites.numero_satelites, apps, num_apps, 0, 0, 1);
+    printf("Máximo de aplicações alocadas: %f\n", result);
 
     return 0;
 end: 
