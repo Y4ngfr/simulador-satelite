@@ -87,6 +87,7 @@ int backtrack(Satellite satellites[], int num_satellites, Application apps[], in
 
 cJSON *le_json(char *nome_arquivo) {
     FILE *arquivo;
+    cJSON *json;
     char *conteudo_arquivo;
     if((arquivo = fopen(nome_arquivo, "rb")) == NULL) {
         printf("\033[41mERRO:\033[0m Não foi possivel ler o arquivo %s", nome_arquivo);
@@ -98,15 +99,23 @@ cJSON *le_json(char *nome_arquivo) {
     fseek(arquivo, 0, SEEK_SET);
 
     conteudo_arquivo = (char*)malloc(sizeof(char) * (tam_arquivo+1));
-    if((fread(conteudo_arquivo, 1, tam_arquivo, arquivo)) != 1) 
-        printf("\033[41mERRO:\033[0m Não foi possivel ler o arquivo %s (escrita no conteudo)", nome_arquivo);
+
+    fread(conteudo_arquivo, 1, tam_arquivo, arquivo);
     
-    conteudo_arquivo[tam_arquivo] = '\0';
-    
+    json = cJSON_Parse(conteudo_arquivo);
+    if(json == NULL) {
+        printf("\033[41mERRO:\033[0m Não foi possivel ler o json\n");
+        goto end;
+    }
     fclose(arquivo);
-    
-    return cJSON_Parse(conteudo_arquivo);
+    return json;
+end:
+    fclose(arquivo);
+    cJSON_Delete(json);
+    exit(1);
+    return ;
 }
+        
 
 
 int main() {
@@ -127,7 +136,8 @@ int main() {
     int num_apps = 2;
 
     
-    le_json("./inputs/log1.json");
+    json = le_json("./inputs/log1.json");
+    printf("%s", cJSON_Print(json));
     int result = backtrack(satellites, num_satellites, apps, num_apps, 0, 0);
     // printf("Máximo de aplicações alocadas: %d\n", result);
 
