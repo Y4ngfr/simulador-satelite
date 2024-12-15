@@ -128,7 +128,7 @@ end:
 
 
 // Função de alocação gulosa
-void greedy_allocate(Satellite **satellites, int num_satellites, Application *apps, int num_apps, int time) {
+Satellite *greedy_allocate(Satellite **satellites, int num_satellites, Application *apps, int num_apps, int time) {
     for (int i = 0; i < num_apps; i++) {
         Application* app = &apps[i];
         Satellite* best_satellite = NULL;
@@ -153,10 +153,10 @@ void greedy_allocate(Satellite **satellites, int num_satellites, Application *ap
         // Se encontramos um satélite adequado, alocar a aplicação nele
         if (best_satellite != NULL) {
             allocate(best_satellite, app);
-            printf("Aplicação %d alocada no satélite %d\n", app->id, best_satellite->id);
-        } else {
-            printf("Aplicação %d não foi alocada\n", app->id);
-        }
+            return best_satellite;
+        } 
+
+        return NULL;
     }
 }
 
