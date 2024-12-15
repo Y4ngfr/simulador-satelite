@@ -241,24 +241,24 @@ int main() {
     time_t t_inicio, t_final;
     cJSON *itens;
     double t_back, t_greed;
-    int num_satellites = 2, num_apps = MAX_APPS, aux = 0, tempo = 1;
+    int num_satellites = 2, num_apps = 2, aux = 0, tempo = 1;
 
     srand(time(NULL));
 
-    Application apps[num_apps];
-    for(int i = 0; i < num_apps; ++i) {
-        apps[i].id = i;
-        apps[i].cpu_demand = (rand()%100)+1;
-        apps[i].memory_demand = (rand()%53)+1;
-        apps[i].position.time = 0;
-        apps[i].position.x =  37.769655522217555;
-        apps[i].position.y = -122.4211555521247;
-    }
+    // Application apps[num_apps];
+    // for(int i = 0; i < num_apps; ++i) {
+    //     apps[i].id = i;
+    //     apps[i].cpu_demand = (rand()%100)+1;
+    //     apps[i].memory_demand = (rand()%53)+1;
+    //     apps[i].position.time = 0;
+    //     apps[i].position.x =  37.769655522217555;
+    //     apps[i].position.y = -122.4211555521247;
+    // }
 
-    // Application apps[num_apps] = {
-    //     {1, 80, 50, {0, 37.769655522217555, -122.4211555521247}}, 
-    //     {2, 80, 50, {0, 37.769655522217555, -122.4211555521247}}
-    // };
+    Application apps[2] = {
+        {1, 80, 50, {0, 37.769655522217555, -122.4211555521247}}, 
+        {2, 80, 50, {0, 37.769655522217555, -122.4211555521247}}
+    };
 
     imprime_infos_app_teste(apps, num_apps);
 
