@@ -128,64 +128,42 @@ end:
 
 
 // Função de alocação gulosa
-Satellite *greedy_allocate(Satellite **satellites, int num_satellites, Application *apps, int num_apps, int time) {
+int *greedy_allocate(ListaSatelites list_satellites, Application *apps, int num_apps, int time) {
+    int *satellites_alocados = (int*)malloc(sizeof(int)*num_apps);
+    int aux_indice = 0, aux_indice_satellite; 
     for (int i = 0; i < num_apps; i++) {
         Application* app = &apps[i];
         Satellite* best_satellite = NULL;
         double max_resources = -1;
 
-        // Procurar o satélite mais adequado para a aplicação
-        for (int j = 0; j < num_satellites; j++) {
-            Satellite* sat = satellites[j];
+        for (int j = 0; j < list_satellites.numero_satelites; j++) {
+            Satellite* sat = list_satellites.satellites[j];
 
-            // Verificar se o satélite está dentro do alcance e tem recursos suficientes
             if (is_within_coverage(sat, app, time) && can_allocate(sat, app)) {
                 double available_resources = sat->cpu_capacity + sat->memory_capacity;
                 
-                // Verificar se esse satélite tem mais recursos livres
                 if (available_resources > max_resources) {
                     max_resources = available_resources;
                     best_satellite = sat;
+                    aux_indice_satellite = j;
                 }
             }
         }
 
-        // Se encontramos um satélite adequado, alocar a aplicação nele
         if (best_satellite != NULL) {
             allocate(best_satellite, app);
-            return best_satellite;
+            satellites_alocados[aux_indice] = aux_indice_satellite;
+            aux_indice++;
         } 
-
-        return NULL;
     }
+    return satellites_alocados;
 }
-
-int main() {
-    cJSON *json;
-    FILE *arquivo = NULL;
+ListaSatelites init_satellites(ListaSatelites satellites, cJSON *itens) {
     const cJSON *item = NULL;
-    ListaSatelites satellites;
-
-    Application apps[MAX_APPS] = {
-        {1, 30, 30, {37.769655522217555, -122.4211555521247}},
-        {2, 80, 150, {20, 20}}
-    };
-
-    int num_satellites = 2;
-    int num_apps = 2;
-
-    // Lê o arquivo JSON
-    json = ler_json("./inputs/log1.json");
-    cJSON *itens = cJSON_GetObjectItemCaseSensitive(json, "satellites");
-
     int tam_satelites = cJSON_GetArraySize(itens);
 
     satellites.numero_satelites = 0;
     satellites.satellites = (Satellite**)malloc(sizeof(Satellite*) * tam_satelites);
-
-    if (itens == NULL) {
-        goto end;
-    }
 
     cJSON_ArrayForEach(item, itens) {
         Satellite *satellite = (Satellite*)malloc(sizeof(Satellite));
@@ -229,7 +207,32 @@ int main() {
         satellites.numero_satelites++;
     }
 
-    // Alocação gulosa das aplicações
+    return satellites;
+}
+
+
+int main() {
+    cJSON *json;
+    FILE *arquivo = NULL;
+    ListaSatelites satellites;
+
+    Application apps[MAX_APPS] = {
+        {1, 30, 30, {37.769655522217555, -122.4211555521247}},
+        {2, 80, 150, {20, 20}}
+    };
+
+    int num_satellites = 2;
+    int num_apps = 2;
+
+    json = ler_json("./inputs/log1.json");
+    cJSON *itens = cJSON_GetObjectItemCaseSensitive(json, "satellites");
+
+    if (itens == NULL) {
+        goto end;
+    }
+
+    satellites = init_satellites(satellites, itens);   
+    
     greedy_allocate(satellites.satellites, satellites.numero_satelites, apps, num_apps, 1);
 
     return 0;
