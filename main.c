@@ -41,14 +41,14 @@ typedef struct {
 
 
 // Função para calcular a distância Euclidiana entre o satélite e a aplicação
-double calcula_distancia(Coordenada *sat_position, Coordenada app_position, int time) {
+double calcula_distancia(Coordenada *sat_position, Coordenada app_position) {
     return sqrt(pow(sat_position->x - app_position.x, 2) + 
                 pow(sat_position->y - app_position.y, 2));
 }
 
 // Função para verificar se a aplicação está dentro da cobertura do satélite
 int verifica_cobertura(Satellite* sat, Application* app, int time) {
-    return calcula_distancia(sat->positions[time-1], app->position, time) <= sat->coverage_radius;
+    return calcula_distancia(sat->positions[time-1], app->position) <= sat->coverage_radius;
 }
 
 // Função para verificar se o satélite tem recursos suficientes para alocar a aplicação
@@ -91,6 +91,7 @@ double backtrack(Satellite **satellites, int num_satellites, Application apps[],
             break;
         }
     }
+    printf("\n");
     
     return max_allocated;
 }
@@ -142,11 +143,11 @@ void greedy_allocate(ListaSatelites list_satellites, Application *apps, int num_
             Satellite* sat = list_satellites.satellites[j];
 
             if (verifica_cobertura(sat, app, time) && pode_alocado(sat, app)) {
-                double available_resources = sat->cpu_capacity + sat->memory_capacity;
+                double quantidade_recurso = sat->cpu_capacity + sat->memory_capacity;
                 
-                if (available_resources > max_resources) {
+                if (quantidade_recurso > max_resources) {
                     
-                    max_resources = available_resources;
+                    max_resources = quantidade_recurso;
                     melhor_satellite = sat;
                     aux_indice_app[i_aux] = i;
                     aux_indice_sat[i_aux] = j;
@@ -201,7 +202,8 @@ ListaSatelites init_satellites(ListaSatelites satellites, cJSON *itens) {
             }
 
             coordenada->time = time->valueint;
-
+            coordenada->x = x;
+            coordenada->y = y;
             satellite->positions[coordenada->time - 1] = coordenada;
         }
 
@@ -241,9 +243,13 @@ int main() {
     double t_back, t_greed;
     int num_satellites = 2, num_apps = 2, aux = 0, tempo = 1;
 
+    // Application apps[MAX_APPS] = {
+    //     {1, (rand()%100)+1, (rand()%100)+1, {0, 37.769655522217555, -122.4211555521247}}, 
+    //     {2, (rand()%100)+1, (rand()%100)+1, {0, 37.769655522217555, -122.4211555521247}}
+    // };
     Application apps[MAX_APPS] = {
-        {1, (rand()%100)+1, (rand()%100)+1, {0, 37.769655522217555, -122.4211555521247}}, 
-        {2, (rand()%100)+1, (rand()%100)+1, {0, 37.769655522217555, -122.4211555521247}}
+        {1, 80, 50, {0, 37.769655522217555, -122.4211555521247}}, 
+        {2, 80, 50, {0, 37.769655522217555, -122.4211555521247}}
     };
 
     imprime_infos_app_teste(apps, num_apps);
@@ -269,8 +275,8 @@ int main() {
         }
 
         time(&t_inicio);
-        printf("\n====== iniciando (backtrack) ======\n\n");
-        printf("\nmaximo de alocações: %f\n", backtrack(satellites.satellites, satellites.numero_satelites, apps, num_apps, 0, 0, tempo));
+        printf("\n====== iniciando (backtrack) ======\n");
+        printf("maximo de alocações: %f\n\n", backtrack(satellites.satellites, satellites.numero_satelites, apps, num_apps, 0, 0, tempo));
         time(&t_final);
 
         t_back = difftime(t_final, t_inicio);
@@ -285,7 +291,7 @@ int main() {
 
         printf("\ntempo execucao (backtrack): %.f\n", t_back);
 
-        printf("\ntempo execucao (greedy_allocate): %.f\n", t_greed);
+        printf("tempo execucao (greedy_allocate): %.f\n\n", t_greed);
         tempo++;
     }
     printf("--------------------------------------------\n");
