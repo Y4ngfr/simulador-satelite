@@ -4,6 +4,7 @@
 #include <math.h>
 #include <string.h>
 #include <cjson/cJSON.h>
+#include <time.h>
 
 #define MAX_SATELLITES 10
 #define MAX_APPS 10
@@ -35,27 +36,23 @@ typedef struct {
     int id;
     int cpu_demand;
     int memory_demand;
-    double position[2];  // Posição da aplicação
+    Coordenada position;  // Posição da aplicação
 } Application;
 
-typedef struct {
-    Application **applications;
-    int numero_application;
-} ListaApplication;
 
 // Função para calcular a distância Euclidiana entre o satélite e a aplicação
-double calculate_distance(Coordenada * sat_position, double app_position[3]) {
-    return sqrt(pow(sat_position->x - app_position[0], 2) + 
-                pow(sat_position->y - app_position[1], 2));
+double calcula_distancia(Coordenada *sat_position, Coordenada app_position, int time) {
+    return sqrt(pow(sat_position->x - app_position.x, 2) + 
+                pow(sat_position->y - app_position.y, 2));
 }
 
 // Função para verificar se a aplicação está dentro da cobertura do satélite
-int is_within_coverage(Satellite* sat, Application* app, int time) {
-    return calculate_distance(sat->positions[time-1], app->position) <= sat->coverage_radius;
+int verifica_cobertura(Satellite* sat, Application* app, int time) {
+    return calcula_distancia(sat->positions[time-1], app->position, time) <= sat->coverage_radius;
 }
 
 // Função para verificar se o satélite tem recursos suficientes para alocar a aplicação
-int can_allocate(Satellite* sat, Application* app) {
+int pode_alocado(Satellite* sat, Application* app) {
     return sat->cpu_capacity >= app->cpu_demand && sat->memory_capacity >= app->memory_demand;
 }
 
@@ -81,17 +78,20 @@ double backtrack(Satellite **satellites, int num_satellites, Application apps[],
 
     Application* app = &apps[index];
     double max_allocated = allocated;
-
+    
+    printf("\nSatellites alocados - app %d: ", index);
     for (int i = 0; i < num_satellites; i++) {
         Satellite* sat = satellites[i];
 
-        if (is_within_coverage(sat, app, time) && can_allocate(sat, app)) {
+        if (verifica_cobertura(sat, app, time) && pode_alocado(sat, app)) {
             allocate(sat, app);
+            printf("%d", sat->id);
             max_allocated = fmax(max_allocated, backtrack(satellites, num_satellites, apps, num_apps, index + 1, allocated + 1, time));
             deallocate(sat, app);
+            break;
         }
     }
-
+    
     return max_allocated;
 }
 
@@ -128,35 +128,41 @@ end:
 
 
 // Função de alocação gulosa
-int *greedy_allocate(ListaSatelites list_satellites, Application *apps, int num_apps, int time) {
+void greedy_allocate(ListaSatelites list_satellites, Application *apps, int num_apps, int time) {
     int *satellites_alocados = (int*)malloc(sizeof(int)*num_apps);
-    int aux_indice = 0, aux_indice_satellite; 
+    int aux_indice = 0;
+    int *aux_indice_app = (int*)malloc(sizeof(int)*list_satellites.numero_satelites),
+    *aux_indice_sat = (int*)malloc(sizeof(int)*list_satellites.numero_satelites), i_aux =0; 
     for (int i = 0; i < num_apps; i++) {
         Application* app = &apps[i];
-        Satellite* best_satellite = NULL;
+        Satellite* melhor_satellite = NULL;
         double max_resources = -1;
 
         for (int j = 0; j < list_satellites.numero_satelites; j++) {
             Satellite* sat = list_satellites.satellites[j];
 
-            if (is_within_coverage(sat, app, time) && can_allocate(sat, app)) {
+            if (verifica_cobertura(sat, app, time) && pode_alocado(sat, app)) {
                 double available_resources = sat->cpu_capacity + sat->memory_capacity;
                 
                 if (available_resources > max_resources) {
+                    
                     max_resources = available_resources;
-                    best_satellite = sat;
-                    aux_indice_satellite = j;
+                    melhor_satellite = sat;
+                    aux_indice_app[i_aux] = i;
+                    aux_indice_sat[i_aux] = j;
                 }
             }
         }
-
-        if (best_satellite != NULL) {
-            allocate(best_satellite, app);
-            satellites_alocados[aux_indice] = aux_indice_satellite;
+        if (melhor_satellite != NULL) {
+            allocate(melhor_satellite, app);
+            printf("app %d alocado no satellite %d", app->id, melhor_satellite->id);
             aux_indice++;
         } 
+        printf("\n");
     }
-    return satellites_alocados;
+    for(int i = 0; i < i_aux; ++i) {
+        deallocate(list_satellites.satellites[aux_indice_sat[i]], &apps[aux_indice_app[i]]);
+    }
 }
 ListaSatelites init_satellites(ListaSatelites satellites, cJSON *itens) {
     const cJSON *item = NULL;
@@ -173,8 +179,9 @@ ListaSatelites init_satellites(ListaSatelites satellites, cJSON *itens) {
         cJSON *range = cJSON_GetObjectItemCaseSensitive(item, "range"); 
         cJSON *coordenadas = cJSON_GetObjectItemCaseSensitive(item, "coordinates");
 
-        int time_couter = 1;
+
         cJSON *coor = NULL;
+        
         satellite->positions = (Coordenada**)malloc(sizeof(Coordenada*) * cJSON_GetArraySize(coordenadas));
         cJSON_ArrayForEach(coor, coordenadas) {
             Coordenada *coordenada = (Coordenada*)malloc(sizeof(Coordenada));
@@ -190,11 +197,12 @@ ListaSatelites init_satellites(ListaSatelites satellites, cJSON *itens) {
                 } else {
                     y = c->valuedouble;
                 }
+                i++;
             }
 
             coordenada->time = time->valueint;
 
-            satellite->positions[time_couter - 1] = coordenada;
+            satellite->positions[coordenada->time - 1] = coordenada;
         }
 
         satellite->cpu_capacity = cpu->valueint;
@@ -211,30 +219,76 @@ ListaSatelites init_satellites(ListaSatelites satellites, cJSON *itens) {
 }
 
 
+void imprime_infos_app_teste(Application *apps, int num_apps) {
+    printf("========== INFORMAÇÔES SOBRE OS APPs ==========\n");
+    for(int i = 0; i < num_apps; ++i) {
+        printf("--------------------------------------------\n");
+        printf("id: %d\n", apps[i].id);
+        printf("cpu_demand: %d\n", apps[i].cpu_demand);
+        printf("memory_demand: %d\n", apps[i].memory_demand);
+        printf("posicao - x: %f y: %f\n", apps[i].position.x, apps[i].position.y); 
+    }
+    printf("--------------------------------------------\n");
+}   
+
+
 int main() {
     cJSON *json;
     FILE *arquivo = NULL;
     ListaSatelites satellites;
+    time_t t_inicio, t_final;
+    cJSON *itens;
+    double t_back, t_greed;
+    int num_satellites = 2, num_apps = 2, aux = 0, tempo = 1;
 
     Application apps[MAX_APPS] = {
-        {1, 30, 30, {37.769655522217555, -122.4211555521247}},
-        {2, 80, 150, {20, 20}}
+        {1, (rand()%100)+1, (rand()%100)+1, {0, 37.769655522217555, -122.4211555521247}}, 
+        {2, (rand()%100)+1, (rand()%100)+1, {0, 37.769655522217555, -122.4211555521247}}
     };
 
-    int num_satellites = 2;
-    int num_apps = 2;
+    imprime_infos_app_teste(apps, num_apps);
 
-    json = ler_json("./inputs/log1.json");
-    cJSON *itens = cJSON_GetObjectItemCaseSensitive(json, "satellites");
+    while(tempo <= 20 && aux <= 2) {
+        char arquivo_nome[100];
+        if((tempo % 20) == 1) {
+            aux++;
+            tempo = 1; 
+        }
+        printf("--------------------------------------------\n");
+        printf("rodando teste no arquivo log%d.json e tempo %d\n", aux, tempo);
+        if(tempo == 1) {
+            sprintf(arquivo_nome, "./inputs/log%d.json", aux);
+            json = ler_json(arquivo_nome);
+            itens = cJSON_GetObjectItemCaseSensitive(json, "satellites");
 
-    if (itens == NULL) {
-        goto end;
+            if (itens == NULL) {
+                goto end;
+            }
+
+            satellites = init_satellites(satellites, itens);
+        }
+
+        time(&t_inicio);
+        printf("\n====== iniciando (backtrack) ======\n\n");
+        printf("\nmaximo de alocações: %f\n", backtrack(satellites.satellites, satellites.numero_satelites, apps, num_apps, 0, 0, tempo));
+        time(&t_final);
+
+        t_back = difftime(t_final, t_inicio);
+
+        time(&t_inicio);
+        satellites = init_satellites(satellites, itens);
+        printf("\n====== iniciando (greedy_allocate) ======\n\n");
+        greedy_allocate(satellites, apps, num_apps, tempo);
+        time(&t_final);
+
+        t_greed =  difftime(t_final, t_inicio);
+
+        printf("\ntempo execucao (backtrack): %.f\n", t_back);
+
+        printf("\ntempo execucao (greedy_allocate): %.f\n", t_greed);
+        tempo++;
     }
-
-    satellites = init_satellites(satellites, itens);   
-    
-    greedy_allocate(satellites.satellites, satellites.numero_satelites, apps, num_apps, 1);
-
+    printf("--------------------------------------------\n");
     return 0;
 end:
     cJSON_Delete(itens);
