@@ -15,62 +15,56 @@ typedef struct {
     double y;
 } Coordenada;
 
-// Estrutura para representar um satélite
+
 typedef struct {
     int id;
     int cpu_capacity;
     int memory_capacity;
     Coordenada **positions;  // O time indica a posição do vetor
     double coverage_radius;
-    int allocated_apps[MAX_APPS];  // Armazena os IDs das aplicações alocadas
-    int allocated_count;  // Número de aplicações alocadas
+    int allocated_apps[MAX_APPS];  
+    int allocated_count;  
 } Satellite;
-// strutura mais facil de percorrer
+
+// Estrutura mais facil de percorrer
 typedef struct {
     Satellite **satellites;
     int numero_satelites;
 } ListaSatelites;
 
-// Estrutura para representar uma aplicação
 typedef struct {
     int id;
     int cpu_demand;
     int memory_demand;
-    Coordenada position;  // Posição da aplicação
+    Coordenada position; 
 } Application;
 
 
-// Função para calcular a distância Euclidiana entre o satélite e a aplicação
 double calcula_distancia(Coordenada *sat_position, Coordenada app_position) {
     return sqrt(pow(sat_position->x - app_position.x, 2) + 
                 pow(sat_position->y - app_position.y, 2));
 }
 
-// Função para verificar se a aplicação está dentro da cobertura do satélite
 int verifica_cobertura(Satellite* sat, Application* app, int time) {
     return calcula_distancia(sat->positions[time-1], app->position) <= sat->coverage_radius;
 }
 
-// Função para verificar se o satélite tem recursos suficientes para alocar a aplicação
 int pode_alocado(Satellite* sat, Application* app) {
     return sat->cpu_capacity >= app->cpu_demand && sat->memory_capacity >= app->memory_demand;
 }
 
-// Função para alocar a aplicação no satélite
 void allocate(Satellite* sat, Application* app) {
     sat->cpu_capacity -= app->cpu_demand;
     sat->memory_capacity -= app->memory_demand;
     sat->allocated_apps[sat->allocated_count++] = app->id;
 }
 
-// Função para desalocar a aplicação do satélite
 void deallocate(Satellite* sat, Application* app) {
     sat->cpu_capacity += app->cpu_demand;
     sat->memory_capacity += app->memory_demand;
     sat->allocated_count--;
 }
 
-// Função de backtracking para alocar as aplicações
 double backtrack(Satellite **satellites, int num_satellites, Application apps[], int num_apps, int index, int allocated, int time) {
     if (index == num_apps) {
         return allocated;  // Todas as aplicações foram alocadas
@@ -128,7 +122,6 @@ end:
         
 
 
-// Função de alocação gulosa
 void greedy_allocate(ListaSatelites list_satellites, Application *apps, int num_apps, int time) {
     int *satellites_alocados = (int*)malloc(sizeof(int)*num_apps);
     int aux_indice = 0;
