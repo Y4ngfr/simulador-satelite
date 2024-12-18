@@ -49,7 +49,7 @@ int verifica_cobertura(Satellite* sat, Application* app, int time) {
     return calcula_distancia(sat->positions[time-1], app->position) <= sat->coverage_radius;
 }
 
-int pode_alocado(Satellite* sat, Application* app) {
+int pode_alocar(Satellite* sat, Application* app) {
     return sat->cpu_capacity >= app->cpu_demand && sat->memory_capacity >= app->memory_demand;
 }
 
@@ -73,19 +73,15 @@ double backtrack(Satellite **satellites, int num_satellites, Application apps[],
     Application* app = &apps[index];
     double max_allocated = allocated;
     
-    printf("\nSatellites alocados - app %d: ", index);
     for (int i = 0; i < num_satellites; i++) {
         Satellite* sat = satellites[i];
 
-        if (verifica_cobertura(sat, app, time) && pode_alocado(sat, app)) {
+        if (verifica_cobertura(sat, app, time) && pode_alocar(sat, app)) {
             allocate(sat, app);
-            printf("%d", sat->id);
             max_allocated = fmax(max_allocated, backtrack(satellites, num_satellites, apps, num_apps, index + 1, allocated + 1, time));
             deallocate(sat, app);
-            break;
         }
     }
-    printf("\n");
     
     return max_allocated;
 }
@@ -135,7 +131,7 @@ void greedy_allocate(ListaSatelites list_satellites, Application *apps, int num_
         for (int j = 0; j < list_satellites.numero_satelites; j++) {
             Satellite* sat = list_satellites.satellites[j];
 
-            if (verifica_cobertura(sat, app, time) && pode_alocado(sat, app)) {
+            if (verifica_cobertura(sat, app, time) && pode_alocar(sat, app)) {
                 double quantidade_recurso = sat->cpu_capacity + sat->memory_capacity;
                 
                 if (quantidade_recurso > max_resources) {
