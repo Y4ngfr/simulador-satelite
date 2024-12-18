@@ -88,3 +88,6 @@ Para cada aplicação em apps:
 
 # Complexidade
 
+Assim como no algoritmo anterior vamos considerar n = número de aplicações e m = número de satélites.
+Encontrar a complexidade do algoritmo guloso é uma tarefa consideravelmente mais facil, pois não há chamadas recursivas.
+Podemos ver que há dois loops for encadeados, cada um com complexidade  O(n) e O(m), totalizando O(n*m). As demais linhas podem ser consideradas constantes.

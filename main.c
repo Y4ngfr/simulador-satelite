@@ -106,14 +106,14 @@ cJSON *ler_json(char *nome_arquivo) {
     json = cJSON_Parse(conteudo_arquivo);
     if(json == NULL) {
         printf("\033[41mERRO:\033[0m Não foi possivel ler o json\n");
-        goto end;
+        fclose(arquivo);
+        cJSON_Delete(json);
+        exit(1);
     }
+
     fclose(arquivo);
+
     return json;
-end:
-    fclose(arquivo);
-    cJSON_Delete(json);
-    exit(1);
 }
         
 
@@ -123,6 +123,7 @@ void greedy_allocate(ListaSatelites list_satellites, Application *apps, int num_
     int aux_indice = 0;
     int *aux_indice_app = (int*)malloc(sizeof(int)*list_satellites.numero_satelites),
     *aux_indice_sat = (int*)malloc(sizeof(int)*list_satellites.numero_satelites), i_aux =0; 
+    
     for (int i = 0; i < num_apps; i++) {
         Application* app = &apps[i];
         Satellite* melhor_satellite = NULL;
