@@ -227,7 +227,7 @@ int main() {
     cJSON *json;
     FILE *arquivo = NULL;
     ListaSatelites satellites;
-    time_t t_inicio, t_final;
+    clock_t t_inicio, t_final;
     cJSON *itens;
     double t_back, t_greed;
     int num_satellites = 2, num_apps = 2, aux = 1, tempo = 1;
@@ -261,40 +261,40 @@ int main() {
             itens = cJSON_GetObjectItemCaseSensitive(json, "satellites");
 
             if (itens == NULL) {
-                goto end;
+                cJSON_Delete(itens);
+                cJSON_Delete(json);
+                exit(1);
             }
 
             satellites = init_satellites(satellites, itens);
         }
 
-        t_inicio = time(NULL);
+        t_inicio = clock();
         printf("\n====== iniciando (backtrack) ======\n");
         printf("maximo de alocações: %f\n\n", backtrack(satellites.satellites, satellites.numero_satelites, apps, num_apps, 0, 0, tempo));
-        time(&t_final);
-        t_final = time(NULL);
-        t_back = difftime(t_final, t_inicio);
+        t_final = clock();
 
-        t_inicio = time(NULL);
+        t_back = (double)(t_final - t_inicio)*1000 / CLOCKS_PER_SEC;
+
+        t_inicio = clock();
         satellites = init_satellites(satellites, itens);
         printf("\n====== iniciando (greedy_allocate) ======\n\n");
         greedy_allocate(satellites, apps, num_apps, tempo);
-        t_final = time(NULL);
+        t_final = clock();
 
-        t_greed =  difftime(t_final, t_inicio);
+        t_greed = (double)(t_final - t_inicio)*1000 / (double)CLOCKS_PER_SEC;
 
-        printf("\ntempo execucao (backtrack): %.f\n", t_back);
+        printf("\ntempo execucao (backtrack): %.2f ms\n", t_back);
 
-        printf("tempo execucao (greedy_allocate): %.f\n\n", t_greed);
+        printf("tempo execucao (greedy_allocate): %.2f ms\n\n", t_greed);
         tempo++;
         if((tempo % 21) == 0) {
             aux++;
             tempo = 1; 
         }
     }
+
     printf("--------------------------------------------\n");
+
     return 0;
-end:
-    cJSON_Delete(itens);
-    cJSON_Delete(json);
-    exit(1);
 }
