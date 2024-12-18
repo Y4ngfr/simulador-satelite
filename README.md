@@ -2,7 +2,7 @@
 
 ### REQUISITOS
 - Make
-- [cJSON](https://github.com/DaveGamble/cJSON). Para instalar o cJSON tente ir em cJSON/build e rodar um comando make e em seguida make install.  Caso não funcione siga as instruções dos autores da biblioteca.
+- [cJSON](https://github.com/DaveGamble/cJSON).
 
 ### Compilação
 Para compilar o projeto, você pode utilizar um dos métodos abaixo:
